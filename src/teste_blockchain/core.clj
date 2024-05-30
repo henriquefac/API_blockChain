@@ -29,24 +29,36 @@
 ;;minerar até conseguir o nonce
 (defn mine [index transacao hash_antecessor]
   (loop [nonce 0]
-    (let [hash (get-hash index hash_antecessor transacao nonce)]
+    (let [hash (get-hash index nonce transacao hash_antecessor)]
       (if (.startsWith hash "0000")
-        (bloco index hash_antecessor transacao nonce hash)
+        (bloco index nonce transacao hash_antecessor hash)
         (recur (inc nonce))))))
 
 (defn criar-genesis []
-  (mine 0 "bloco genesis" "0"))
+  (mine 0 "bloco genesis" "0000000000000000000000000000000000000000000000000000000000000000"))
 ;;inicializar atom
-(def block-atom (atom (criar-genesis)))
+(def block-atom (atom (conj [](criar-genesis))))
 
 ;;criar bloco de block chain
 ;;quando for adicionar um bloco, checar se existe bloco no atom
 ;;adicionar bloco no atom
-(defn chain_block [index hash_antecessor transacao]
-  ;;fazer esse negócio 
+(defn chain_block [transacao]
+  #_{:clj-kondo/ignore [:missing-else-branch]}
+  (if (empty? @block-atom)
+    (reset! block-atom (conj [] (criar-genesis))))
+  (let [ultimo-bloco (peek @block-atom)
+        index-prox (inc (:index ultimo-bloco))
+        novo-bloco (mine index-prox transacao (:hash ultimo-bloco))]
+    
+    (swap! block-atom conj novo-bloco))
   )
-
+;;algo, uma mudança
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (println "Hello, World!"))
+  (print @block-atom)
+  ;;Adicionar bloco de teste
+  (chain_block "transacao1")
+  (chain_block "transacao2")
+  (doall (map println @block-atom))
+  )
